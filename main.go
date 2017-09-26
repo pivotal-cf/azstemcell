@@ -18,10 +18,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 )
 
-const defaultBufSize = 1024 * 64
+// defaultBufSize controls the size of reads and writes - Azure performs best
+// when things are done in large chunks.
+const defaultBufSize = 32 * 1024 * 1024
 
 // Stemcell
 
@@ -215,24 +218,6 @@ func CreateImage(vhdpath, imagepath string) error {
 	}
 	go func() { errCh <- cmd.Wait() }()
 
-	// TODO (CEV): Remove
-	defer func() {
-		if e := recover(); e != nil {
-			fmt.Println("PANIC:", e)
-			time.Sleep(time.Millisecond * 500)
-			if cmd.ProcessState != nil {
-				fmt.Println("ProcessState", cmd.ProcessState.String())
-			}
-			select {
-			case err := <-errCh:
-				fmt.Println("Cmd Error:", err)
-			default:
-				fmt.Println("Cmd Error: NOT SIGNALED")
-			}
-			fmt.Println("STDERR:", stderr.String())
-		}
-	}()
-
 	// create image tarball
 
 	fi, err := vhd.Stat()
@@ -412,9 +397,11 @@ func validateFlags() []error {
 	if WindowsOS == "" {
 		add(errors.New("missing required argument: [os]"))
 	}
-	switch WindowsOS {
-	case "2012R2", "2016":
-		// Ok
+	switch strings.ToLower(WindowsOS) {
+	case "2012r2", "2016":
+	// Ok
+	case "windows2012r2", "windows2016":
+		WindowsOS = strings.TrimPrefix(WindowsOS, "windows")
 	default:
 		add(fmt.Errorf("OS version must be either 2012R2 or 2016 have: %s", WindowsOS))
 	}
