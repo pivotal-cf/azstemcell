@@ -17,7 +17,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -66,6 +65,8 @@ cloud_properties:
 }
 
 func AddFileToArchive(tw *tar.Writer, name, newName string) error {
+	defer PrintStatus("Adding file (%s) to archive", name)()
+
 	f, err := os.Open(name)
 	if err != nil {
 		return err
@@ -93,6 +94,8 @@ func AddFileToArchive(tw *tar.Writer, name, newName string) error {
 }
 
 func Sha1sum(filename string) (string, error) {
+	defer PrintStatus("Calculating image sha1sum")()
+
 	f, err := os.Open(filename)
 	if err != nil {
 		return "", err
@@ -107,6 +110,9 @@ func Sha1sum(filename string) (string, error) {
 }
 
 func CreateStemcell(dirname, image, winOS, version string) error {
+	defer PrintStatus("Creating heavy stemcell (Version: %s WinOS: %s)",
+		version, winOS)()
+
 	if err := os.MkdirAll(dirname, 0644); err != nil {
 		return err
 	}
@@ -161,6 +167,8 @@ func CreateStemcell(dirname, image, winOS, version string) error {
 // Image
 
 func CreateImage(vhdpath, imagepath string) error {
+	defer PrintStatus("Convert VHD to Image (VHD: %s Image: %s)",
+		vhdpath, imagepath)()
 
 	if _, err := exec.LookPath("pigz"); err != nil {
 		return err
@@ -283,6 +291,8 @@ func AzCopyURL(rawURL string) (source, pattern string, err error) {
 }
 
 func DownloadVHD(vhdURL, dirname string) (string, error) {
+	defer PrintStatus("VHD Download")()
+
 	if _, err := os.Stat(WorkDir); os.IsNotExist(err) {
 		return "", fmt.Errorf("download: invalid dirname (%s): %s", dirname, err)
 	}
@@ -418,7 +428,26 @@ func validateFlags() []error {
 	return errs
 }
 
+func printFlags() {
+	fmt.Println("Using the following FLAG/ENV options:")
+	// Strip SAS portion from VhdURL
+	s := VhdURL
+	if n := strings.IndexByte(s, '?'); n > 0 {
+		s = s[:n]
+	}
+	fmt.Println("  VhdURL:", s)
+	fmt.Println("  VhdURLFile:", VhdURLFile)
+	fmt.Println("  SourceKey:", "REDACTED")
+	fmt.Println("  Version:", Version)
+	fmt.Println("  VersionFile:", VersionFile)
+	fmt.Println("  WindowsOS:", WindowsOS)
+	fmt.Println("  Destination:", Destination)
+	fmt.Println("  WorkDir:", WorkDir)
+}
+
 func realMain() error {
+	defer PrintStatus("Main")()
+
 	if err := parseFlags(); err != nil {
 		return fmt.Errorf("parsing flags: %s", err)
 	}
@@ -432,6 +461,7 @@ func realMain() error {
 		}
 		return errors.New(buf.String())
 	}
+	printFlags()
 
 	if err := os.MkdirAll(WorkDir, 0744); err != nil {
 		return fmt.Errorf("working directory: %s", err)
@@ -464,27 +494,20 @@ func realMain() error {
 
 func main() {
 	if err := realMain(); err != nil {
-		FatalSkip(2, err)
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		os.Exit(1)
 	}
 }
 
-func Fatal(err interface{}) {
-	FatalSkip(2, err)
-}
+// Helpers
 
-func FatalSkip(skip int, err interface{}) {
-	if err == nil {
-		return
+func PrintStatus(format string, a ...interface{}) func() {
+	start := time.Now()
+	msg := fmt.Sprintf(format, a...)
+	fmt.Printf("[%s] STARTING: %s\n", start.Format(time.RFC3339), msg)
+	return func() {
+		now := time.Now()
+		fmt.Printf("[%s] COMPLETED (%s): %s\n",
+			now.Format(time.RFC3339), now.Sub(start), msg)
 	}
-	msg := "Error"
-	if _, file, line, ok := runtime.Caller(skip); ok && file != "" {
-		msg = fmt.Sprintf("Error (%s:%d)", filepath.Base(file), line)
-	}
-	switch err.(type) {
-	case error, string, fmt.Stringer:
-		fmt.Fprintf(os.Stderr, "%s: %s", msg, err)
-	default:
-		fmt.Fprintf(os.Stderr, "%s: %#v\n", msg, err)
-	}
-	os.Exit(1)
 }
