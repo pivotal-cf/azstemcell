@@ -300,7 +300,7 @@ func DownloadVHD(vhdURL, dirname string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	cmd := exec.Command("AzCopy.exe",
+	cmd := exec.Command("azcopy",
 		"/Source:"+source,
 		"/Pattern:"+pattern,
 		"/SourceKey:"+SourceKey,
