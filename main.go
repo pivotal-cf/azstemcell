@@ -301,10 +301,14 @@ func DownloadVHD(vhdURL, dirname string) (string, error) {
 		return "", err
 	}
 	cmd := exec.Command("azcopy",
-		"/Source:"+source,
-		"/Pattern:"+pattern,
-		"/SourceKey:"+SourceKey,
-		"/Dest:"+dirname,
+		"--source",
+		source,
+		"--pattern",
+		pattern,
+		"--sourcekey",
+		SourceKey,
+		"--destination",
+		dirname,
 	)
 	var stderr bytes.Buffer
 	cmd.Stdout = os.Stdout // WARN
