@@ -311,7 +311,9 @@ func DownloadVHD(vhdURL, dirname string) (string, error) {
 		dirname,
 	)
 	var stderr bytes.Buffer
-	cmd.Stdout = os.Stdout // WARN
+	// cannot disable progress bar ascii animation,
+	// so stdout becomes massive and unwieldy
+	// cmd.Stdout = os.Stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("%s: %s  --- BEGIN STDERR ---\n%s\n--- END STDERR ---",
