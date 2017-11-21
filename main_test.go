@@ -13,7 +13,7 @@ func TestCreateManifest(t *testing.T) {
 	const version = "1200.1"
 	const expected = `---
 name: bosh-azure-hyperv-windows2012R2-go_agent
-version: 1200.1
+version: '1200.1'
 bosh_protocol: 1
 sha1: 478da1732dba66e67e6a657fdf03b5614c513b04
 operating_system: windows2012R2

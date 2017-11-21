@@ -35,7 +35,7 @@ func StemcellFilename(version, os string) string {
 func CreateManifest(filename, version, winOS, hash string) error {
 	const format = `---
 name: bosh-azure-hyperv-windows%[2]s-go_agent
-version: %[1]s
+version: '%[1]s'
 bosh_protocol: 1
 sha1: %[3]s
 operating_system: windows%[2]s
