@@ -277,20 +277,17 @@ func CreateImage(vhdpath, imagepath string) error {
 	return nil
 }
 
-// Download
-
 func AzCopyURL(rawURL string) (source, pattern string, err error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return
 	}
-	u.RawQuery = ""
-	u.Path, pattern = path.Split(u.Path)
 	source = u.String()
+	_, pattern = path.Split(u.Path)
 	return
 }
 
-func DownloadVHD(vhdURL, dirname string) (string, error) {
+func DownloadVHD(dirname string) (string, error) {
 	defer PrintStatus("VHD Download")()
 
 	if _, err := os.Stat(WorkDir); os.IsNotExist(err) {
@@ -300,27 +297,21 @@ func DownloadVHD(vhdURL, dirname string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	destinationFile := filepath.Join(dirname, pattern)
 	cmd := exec.Command("azcopy",
 		"--source",
 		source,
-		"--include",
-		pattern,
-		"--source-key",
-		SourceKey,
 		"--destination",
-		dirname,
+		destinationFile,
 	)
 	var stderr bytes.Buffer
-	// cannot disable progress bar ascii animation,
-	// so stdout becomes massive and unwieldy
-	// cmd.Stdout = os.Stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("%s: %s  --- BEGIN STDERR ---\n%s\n--- END STDERR ---",
 			filepath.Base(cmd.Path), err, stderr)
 	}
 
-	return filepath.Join(dirname, pattern), nil
+	return destinationFile, nil
 }
 
 // Main and flag validation
@@ -329,7 +320,6 @@ var (
 	// Add env keys first so that flags take precedence
 	VhdURL      = os.Getenv("AZURE_VHD_URL")      // vhd
 	VhdURLFile  = os.Getenv("AZURE_VHD_URL_FILE") // vhdfile
-	SourceKey   = os.Getenv("AZURE_SOURCE_KEY")   // key
 	Version     = os.Getenv("AZURE_VERSION")      // version
 	VersionFile = os.Getenv("AZURE_VERSION_FILE") // versionfile
 	WindowsOS   = os.Getenv("AZURE_WINDOWS_OS")   // os
@@ -338,9 +328,8 @@ var (
 )
 
 func parseFlags() error {
-	flag.StringVar(&VhdURL, "vhd", "", "URL to VHD, env: AZURE_VHD_URL")
-	flag.StringVar(&VhdURLFile, "vhdfile", "", "File containing the VHD URL, env: AZURE_VHD_URL_FILE")
-	flag.StringVar(&SourceKey, "key", "", "Azure source key for downloading blob, env: AZURE_SOURCE_KEY")
+	flag.StringVar(&VhdURL, "vhd", "", "URL to VHD with SAS token, env: AZURE_VHD_URL")
+	flag.StringVar(&VhdURLFile, "vhdfile", "", "File containing the VHD URL with SAS token, env: AZURE_VHD_URL_FILE")
 	flag.StringVar(&Version, "version", "", "Stemcell version, env: AZURE_VERSION")
 	flag.StringVar(&VersionFile, "versionfile", "", "File containing the stemcell version, env: AZURE_VERSION_FILE")
 	flag.StringVar(&WindowsOS, "os", "", "Windows version (2012R2, 2016 or 1803), env: AZURE_WINDOWS_OS")
@@ -407,9 +396,6 @@ func validateFlags() []error {
 	if VhdURL == "" {
 		add(errors.New("missing required argument: [vhd]"))
 	}
-	if SourceKey == "" {
-		add(errors.New("missing required argument: [key]"))
-	}
 	if WindowsOS == "" {
 		add(errors.New("missing required argument: [os]"))
 	}
@@ -443,7 +429,6 @@ func printFlags() {
 	}
 	fmt.Println("  VhdURL:", s)
 	fmt.Println("  VhdURLFile:", VhdURLFile)
-	fmt.Println("  SourceKey:", "REDACTED")
 	fmt.Println("  Version:", Version)
 	fmt.Println("  VersionFile:", VersionFile)
 	fmt.Println("  WindowsOS:", WindowsOS)
@@ -482,7 +467,7 @@ func realMain() error {
 	}
 	defer os.RemoveAll(tempdir)
 
-	vhdpath, err := DownloadVHD(VhdURL, tempdir)
+	vhdpath, err := DownloadVHD(tempdir)
 	if err != nil {
 		return fmt.Errorf("downloading VHD: %s", err)
 	}
