@@ -332,7 +332,7 @@ func parseFlags() error {
 	flag.StringVar(&VhdURLFile, "vhdfile", "", "File containing the VHD URL with SAS token, env: AZURE_VHD_URL_FILE")
 	flag.StringVar(&Version, "version", "", "Stemcell version, env: AZURE_VERSION")
 	flag.StringVar(&VersionFile, "versionfile", "", "File containing the stemcell version, env: AZURE_VERSION_FILE")
-	flag.StringVar(&WindowsOS, "os", "", "Windows version (2012R2, 2016 or 1803), env: AZURE_WINDOWS_OS")
+	flag.StringVar(&WindowsOS, "os", "", "Windows version (2012R2, 2016, 1803, or 2019), env: AZURE_WINDOWS_OS")
 	flag.StringVar(&Destination, "dest", "", "Destination directory if not provided the current working directory will be used, env: AZURE_DESTINATION")
 	flag.StringVar(&WorkDir, "temp", "", "Temporary directory (must be capable of storing +130GB of data), env: AZURE_TEMP_DIR")
 
@@ -400,12 +400,12 @@ func validateFlags() []error {
 		add(errors.New("missing required argument: [os]"))
 	}
 	switch strings.ToLower(WindowsOS) {
-	case "2012r2", "2016", "1803":
+	case "2012r2", "2016", "1803", "2019":
 	// Ok
-	case "windows2012r2", "windows2016", "windows1803":
+	case "windows2012r2", "windows2016", "windows1803", "windows2019":
 		WindowsOS = strings.TrimPrefix(WindowsOS, "windows")
 	default:
-		add(fmt.Errorf("OS version must be either 2012R2, 2016 or 1803 have: %s", WindowsOS))
+		add(fmt.Errorf("OS version must be either 2012R2, 2016, 1803, or 2019 have: %s", WindowsOS))
 	}
 	if Destination == "" {
 		add(errors.New("missing required argument: [dest]"))
