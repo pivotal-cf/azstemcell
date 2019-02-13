@@ -303,9 +303,11 @@ func DownloadVHD(dirname string) (string, error) {
 		source,
 		"--destination",
 		destinationFile,
+		"--verbose",
 	)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
+	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("%s: %s  --- BEGIN STDERR ---\n%s\n--- END STDERR ---",
 			filepath.Base(cmd.Path), err, stderr.String())
