@@ -263,7 +263,7 @@ func CreateImage(vhdpath, imagepath string) error {
 	case e := <-errCh:
 		if e != nil {
 			return exit(fmt.Errorf("%s: %s  --- BEGIN STDERR ---\n%s\n--- END STDERR ---",
-				filepath.Base(cmd.Path), e, stderr))
+				filepath.Base(cmd.Path), e, stderr.String()))
 		}
 	case <-time.After(time.Second * 30):
 		return exit(fmt.Errorf("%s: timed out waiting for exit",
@@ -308,7 +308,7 @@ func DownloadVHD(dirname string) (string, error) {
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("%s: %s  --- BEGIN STDERR ---\n%s\n--- END STDERR ---",
-			filepath.Base(cmd.Path), err, stderr)
+			filepath.Base(cmd.Path), err, stderr.String())
 	}
 
 	return destinationFile, nil
@@ -415,7 +415,7 @@ func validateFlags() []error {
 	}
 	name := filepath.Join(Destination, StemcellFilename(Version, WindowsOS))
 	if _, err := os.Stat(name); err == nil {
-		add(fmt.Errorf("output file (%s): already exists - refusing to overwrite", name, err))
+		add(fmt.Errorf("output file (%s): already exists - refusing to overwrite. Err: %s", name, err))
 	}
 	return errs
 }
