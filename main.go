@@ -36,7 +36,7 @@ func CreateManifest(filename, version, winOS, hash string) error {
 	const format = `---
 name: bosh-azure-hyperv-windows%[2]s-go_agent
 version: '%[1]s'
-bosh_protocol: 1
+api_version: 3
 sha1: %[3]s
 operating_system: windows%[2]s
 cloud_properties:
