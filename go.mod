@@ -1,3 +1,3 @@
 module github.com/pivotal-cf/azstemcell
 
-go 1.20
+go 1.21
